@@ -14,6 +14,11 @@ impl MEM{
             self.data[i] = 0;
         }
     }
+    fn write_word(&mut self, cycles: &mut u32 , word: Word, addr: u32) {
+        self.data[addr as usize] = (word & 0xFF) as u8;
+        self.data[(addr + 1) as usize] = (word >> 8) as u8; 
+        *cycles -= 2;
+    }
 }
 
 impl Default for MEM {
@@ -28,7 +33,7 @@ impl Default for MEM {
 #[derive(Debug, Clone, Copy)]
 struct CPU {
     PC: Word, // Program counter
-    SP: Word, // Stack pointer  | probably should be Byte
+    SP: Byte, // Stack pointer  | probably should be Byte
         // registers
     A: Byte,
     X: Byte,
@@ -48,10 +53,11 @@ impl CPU{
     const INS_LDA_IM: Byte = 0xA9;    // LDA - Load Accumulator, imidiate mode
     const INS_LDA_ZP: Byte = 0xA5;    // LDA, zero page mode
     const INS_LDA_ZP_X: Byte = 0xB5;  // LDA, zero page, X
+    const INS_JSR: Byte = 0x20;       // JSR - Jump to  Subroutine
 
     fn reset(&mut self,memory: &mut MEM) {
         self.PC = 0xFFFC;
-        self.SP = 0x0100; //maybe 0x00FF ? idk
+        self.SP = 0x00FF;
 
         self.C = 0;
         self.Z = 0;
@@ -68,10 +74,20 @@ impl CPU{
         memory.initialise();
     }
 
-    fn fetch (&mut self, cycles: &mut u32, memory: &MEM) -> Byte{
+    fn fetch_byte (&mut self, cycles: &mut u32, memory: &MEM) -> Byte{
         let data: Byte = memory.data[self.PC as usize];
         self.PC += 1;
         *cycles -= 1;
+
+        data
+    }
+
+    fn fetch_word (&mut self, cycles: &mut u32, memory: &MEM) -> Word{
+        let mut data: Word = memory.data[self.PC as usize] as Word;
+        self.PC += 1;
+        data |= (memory.data[self.PC as usize] as Word) << 8; // because 6502 is little endian and my machine is little endian
+        self.PC += 1;
+        *cycles -= 2;
 
         data
     }
@@ -95,29 +111,35 @@ impl CPU{
         }
     }
 
-    fn execute(&mut self, mut cycles: u32, memory: &MEM){
+    fn execute(&mut self, mut cycles: u32, memory: &mut MEM){
         while cycles > 0 {
-            let instruction: Byte = self.fetch(&mut cycles, &memory);
+            let instruction: Byte = self.fetch_byte(&mut cycles, &memory);
             match instruction {
                 CPU::INS_LDA_IM => {
-                    let value: Byte = self.fetch(&mut cycles, memory);
+                    let value: Byte = self.fetch_byte(&mut cycles, memory);
                     self.A = value;
 
                     self.LDA_set_status();
                 }
                 CPU::INS_LDA_ZP => {
-                    let zero_page_address: Byte = self.fetch(&mut cycles, memory);
+                    let zero_page_address: Byte = self.fetch_byte(&mut cycles, memory);
                     self.A = self.read(&mut cycles, memory, zero_page_address);
                     
                     self.LDA_set_status();
                 }
                 CPU::INS_LDA_ZP_X => {
-                    let mut zero_page_adress: Byte = self.fetch(&mut cycles, memory);
+                    let mut zero_page_adress: Byte = self.fetch_byte(&mut cycles, memory);
                     zero_page_adress += self.X;
                     cycles -= 1;
                     self.A = self.read(&mut cycles, memory, zero_page_adress);
                     //TODO: handle the address overflow
                     self.LDA_set_status();
+                }
+                CPU::INS_JSR => {
+                    let sr_address: Word = self.fetch_word(&mut cycles, memory);
+                    memory.write_word(&mut cycles, self.PC - 1, self.SP as u32);
+                    self.PC = sr_address;
+                    cycles -= 1;
                 }
                 _ => {println!("No instruction {}", instruction)}
             }
@@ -135,12 +157,14 @@ fn main() {
     let mut mem: MEM = MEM::default();
     let mut cpu: CPU = CPU::default();
     cpu.reset(&mut mem);
-    /* 
-    mem.data[0xFFFC] = CPU::INS_LDA_ZP;
+
+    mem.data[0xFFFC] = CPU::INS_JSR;
     mem.data[0xFFFD] = 0x42;
-    mem.data[0x0042] = 0x12;
-    */
-    cpu.execute(3,&mut mem);
+    mem.data[0xFFFE] = 0x42;
+    mem.data[0x4242] = CPU::INS_LDA_IM;
+    mem.data[0x4243] = 0x12;
+
+    cpu.execute(9,&mut mem);
 
     println!();
 }
