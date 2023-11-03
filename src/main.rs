@@ -33,7 +33,7 @@ impl Default for MEM {
 #[derive(Debug, Clone, Copy)]
 struct CPU {
     PC: Word, // Program counter
-    SP: Byte, // Stack pointer  | probably should be Byte
+    SP: Byte, // Stack pointer 
         // registers
     A: Byte,
     X: Byte,
@@ -157,13 +157,13 @@ fn main() {
     let mut mem: MEM = MEM::default();
     let mut cpu: CPU = CPU::default();
     cpu.reset(&mut mem);
-
+    /* a litle program
     mem.data[0xFFFC] = CPU::INS_JSR;
     mem.data[0xFFFD] = 0x42;
     mem.data[0xFFFE] = 0x42;
     mem.data[0x4242] = CPU::INS_LDA_IM;
     mem.data[0x4243] = 0x12;
-
+    */
     cpu.execute(9,&mut mem);
 
     println!();
