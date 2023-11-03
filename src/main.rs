@@ -27,13 +27,13 @@ impl Default for MEM {
 #[allow(non_snake_case)]
 #[derive(Debug, Clone, Copy)]
 struct CPU {
-    PC: Word, //Program counter
-    SP: Word, //Stack pointer
+    PC: Word, // Program counter
+    SP: Word, // Stack pointer  | probably should be Byte
         // registers
     A: Byte,
     X: Byte,
     Y: Byte,
-        //status flags
+        // status flags
     C: Byte, 
     Z: Byte,
     I: Byte,
@@ -44,6 +44,10 @@ struct CPU {
 }
 
 impl CPU{
+        // opcodes
+    // LDA - Load Accumulator, imidiate mode
+    const INS_LDA_IM: Byte = 0xA9;
+
     fn reset(&mut self,memory: &mut MEM) {
         self.PC = 0xFFFC;
         self.SP = 0x0100; //maybe 0x00FF ? idk
@@ -73,7 +77,22 @@ impl CPU{
 
     fn execute(&mut self, mut cycles: u32, memory: &MEM){
         while cycles > 0 {
-            let _instruction: Byte = self.fetch(&mut cycles, &memory);
+            let instruction: Byte = self.fetch(&mut cycles, &memory);
+            match instruction {
+                CPU::INS_LDA_IM => {
+                    let value: Byte= self.fetch(&mut cycles, memory);
+                    self.A = value;
+                    // Z is set if A = 0
+                    if self.A == 0 {
+                        self.Z = 1;
+                    }
+                    // N is set if bit 7 of A is set
+                    if self.A & 0b10000000 > 0{
+                        self.N = 1;
+                    }
+                }
+                _ => {}
+            }
         }
     }
 }
