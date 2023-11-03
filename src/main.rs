@@ -45,8 +45,9 @@ struct CPU {
 
 impl CPU{
         // opcodes
-    // LDA - Load Accumulator, imidiate mode
-    const INS_LDA_IM: Byte = 0xA9;
+    const INS_LDA_IM: Byte = 0xA9;    // LDA - Load Accumulator, imidiate mode
+    const INS_LDA_ZP: Byte = 0xA5;    // LDA, zero page mode
+    const INS_LDA_ZP_X: Byte = 0xB5;  // LDA, zero page, X
 
     fn reset(&mut self,memory: &mut MEM) {
         self.PC = 0xFFFC;
@@ -75,23 +76,50 @@ impl CPU{
         data
     }
 
+    // doesn't increment the program counter
+    fn read (&mut self, cycles: &mut u32, memory: &MEM, address: Byte) -> Byte{
+        let data: Byte = memory.data[address as usize];
+        *cycles -= 1;
+
+        data
+    }
+    #[allow(non_snake_case)]
+    fn LDA_set_status(&mut self) {
+        // Z is set if A = 0
+        if self.A == 0 {
+            self.Z = 1;
+        }
+        // N is set if bit 7 of A is set
+        if self.A & 0b10000000 > 0{
+            self.N = 1;
+        }
+    }
+
     fn execute(&mut self, mut cycles: u32, memory: &MEM){
         while cycles > 0 {
             let instruction: Byte = self.fetch(&mut cycles, &memory);
             match instruction {
                 CPU::INS_LDA_IM => {
-                    let value: Byte= self.fetch(&mut cycles, memory);
+                    let value: Byte = self.fetch(&mut cycles, memory);
                     self.A = value;
-                    // Z is set if A = 0
-                    if self.A == 0 {
-                        self.Z = 1;
-                    }
-                    // N is set if bit 7 of A is set
-                    if self.A & 0b10000000 > 0{
-                        self.N = 1;
-                    }
+
+                    self.LDA_set_status();
                 }
-                _ => {}
+                CPU::INS_LDA_ZP => {
+                    let zero_page_address: Byte = self.fetch(&mut cycles, memory);
+                    self.A = self.read(&mut cycles, memory, zero_page_address);
+                    
+                    self.LDA_set_status();
+                }
+                CPU::INS_LDA_ZP_X => {
+                    let mut zero_page_adress: Byte = self.fetch(&mut cycles, memory);
+                    zero_page_adress += self.X;
+                    cycles -= 1;
+                    self.A = self.read(&mut cycles, memory, zero_page_adress);
+                    //TODO: handle the address overflow
+                    self.LDA_set_status();
+                }
+                _ => {println!("No instruction {}", instruction)}
             }
         }
     }
@@ -107,5 +135,12 @@ fn main() {
     let mut mem: MEM = MEM::default();
     let mut cpu: CPU = CPU::default();
     cpu.reset(&mut mem);
-    cpu.execute(2,&mut mem);
+    /* 
+    mem.data[0xFFFC] = CPU::INS_LDA_ZP;
+    mem.data[0xFFFD] = 0x42;
+    mem.data[0x0042] = 0x12;
+    */
+    cpu.execute(3,&mut mem);
+
+    println!();
 }
