@@ -25,7 +25,7 @@ impl Default for MEM {
 }
 
 #[allow(non_snake_case)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 struct CPU {
     PC: Word, //Program counter
     SP: Word, //Stack pointer
@@ -44,7 +44,7 @@ struct CPU {
 }
 
 impl CPU{
-    fn reset(&mut self, memory: &mut MEM) {
+    fn reset(&mut self,memory: &mut MEM) {
         self.PC = 0xFFFC;
         self.SP = 0x0100; //maybe 0x00FF ? idk
 
@@ -62,7 +62,22 @@ impl CPU{
 
         memory.initialise();
     }
+
+    fn fetch (&mut self, cycles: &mut u32, memory: &MEM) -> Byte{
+        let data: Byte = memory.data[self.PC as usize];
+        self.PC += 1;
+        *cycles -= 1;
+
+        data
+    }
+
+    fn execute(&mut self, mut cycles: u32, memory: &MEM){
+        while cycles > 0 {
+            let _instruction: Byte = self.fetch(&mut cycles, &memory);
+        }
+    }
 }
+
 impl Default for CPU {
     fn default() -> CPU {
         CPU { PC: 0, SP: 0, A: 0, X: 0, Y: 0, C: 0, Z: 0, I: 0, D: 0, B:0, V: 0, N: 0 }
@@ -73,4 +88,5 @@ fn main() {
     let mut mem: MEM = MEM::default();
     let mut cpu: CPU = CPU::default();
     cpu.reset(&mut mem);
+    cpu.execute(2,&mut mem);
 }
