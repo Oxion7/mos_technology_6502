@@ -54,6 +54,7 @@ impl CPU{
     pub const INS_LDA_IM: Byte = 0xA9;    // LDA - Load Accumulator, imidiate mode
     pub const INS_LDA_ZP: Byte = 0xA5;    // LDA, zero page mode
     pub const INS_LDA_ZP_X: Byte = 0xB5;  // LDA, zero page, X
+    pub const INS_LDA_AB: Byte = 0xAD  ;   // LDA, absolute
     pub const INS_JSR: Byte = 0x20;       // JSR - Jump to  Subroutine
 
     pub fn reset(&mut self,memory: &mut MEM) {
@@ -94,12 +95,32 @@ impl CPU{
     }
 
     // doesn't increment the program counter
-    fn read (&mut self, cycles: &mut u32, memory: &MEM, address: Byte) -> Byte{
+    fn read_byte (&mut self, cycles: &mut u32, memory: &MEM, address: Byte) -> Byte{
         let data: Byte = memory.data[address as usize];
         *cycles -= 1;
 
         data
     }
+
+    /*fn read_word (&mut self, cycles: &mut u32, memory: &MEM, address: Word) -> Byte{
+        let addr = Self::swap_bytes(address);
+        let data: Byte = memory.data[addr as usize];
+        *cycles -= 2;
+
+        data
+    }
+
+    fn swap_bytes(word: Word) -> Word {
+        // Extract the low byte and high byte
+        let low_byte = word & 0xFF;
+        let high_byte = (word >> 8) & 0xFF;
+    
+        // Swap the bytes and recombine them
+        let swapped_word = (low_byte << 8) | high_byte;
+    
+        swapped_word
+    }*/
+
     #[allow(non_snake_case)]
     fn LDA_set_status(&mut self) {
         // Z is set if A = 0
@@ -124,7 +145,7 @@ impl CPU{
                 }
                 CPU::INS_LDA_ZP => {
                     let zero_page_address: Byte = self.fetch_byte(&mut cycles, memory);
-                    self.A = self.read(&mut cycles, memory, zero_page_address);
+                    self.A = self.read_byte(&mut cycles, memory, zero_page_address);
                     
                     self.LDA_set_status();
                 }
@@ -132,10 +153,16 @@ impl CPU{
                     let mut zero_page_adress: Byte = self.fetch_byte(&mut cycles, memory);
                     zero_page_adress += self.X;
                     cycles -= 1;
-                    self.A = self.read(&mut cycles, memory, zero_page_adress);
+                    self.A = self.read_byte(&mut cycles, memory, zero_page_adress);
                     //TODO: handle the address overflow
                     self.LDA_set_status();
                 }
+                /*CPU::INS_LDA_AB => {
+                    let ab_address: Word = self.fetch_word(&mut cycles, memory);
+                    self.A = self.read_word(&mut cycles, memory, ab_address);
+
+                    self.LDA_set_status();
+                }*/
                 CPU::INS_JSR => {
                     let sr_address: Word = self.fetch_word(&mut cycles, memory);
                     memory.write_word(&mut cycles, self.PC - 1, self.SP as u32);
@@ -183,4 +210,18 @@ mod test {
         assert_eq!(cpu.A, 0x12);
         assert_eq!(cpu.PC, pcs + 2);
     }
+    /*#[test]
+    fn LDA_AB_load_value_in_register(){
+        let mut mem: MEM = MEM::default();
+        let mut cpu: CPU = CPU::default();
+        cpu.reset(&mut mem);
+        let pcs = cpu.PC;
+        mem.data[0xFFFC] = CPU::INS_LDA_AB;
+        mem.data[0xFFFD] = 0x42;
+        mem.data[0xFFFE] = 0x36;
+        mem.data[0x3642] = 0x12;
+        cpu.execute(4, &mut mem);
+        assert_eq!(cpu.A, 0x12);
+        assert_eq!(cpu.PC, pcs + 2)
+    }*/
 }
