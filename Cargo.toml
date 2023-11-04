@@ -1,7 +1,8 @@
 [package]
 name = "mos_technology_6502"
 version = "0.1.0"
-author = "Oxion7"
+author = "Oxion7, Dave Poo"
+repository = "https://github.com/Oxion7/mos_technology_6502"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
