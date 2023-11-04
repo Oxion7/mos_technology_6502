@@ -12,7 +12,6 @@ fn main() {
     mem.data[0x4242] = CPU::INS_LDA_IM;
     mem.data[0x4243] = 0x12;
     cpu.execute(8,&mut mem);
-
     println!();
 
 }

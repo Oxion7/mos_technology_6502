@@ -1,5 +1,3 @@
-
-
 type Byte = u8;
 type Word = u16;
 
@@ -49,6 +47,7 @@ pub struct CPU {
     V: Byte,
     N: Byte,
 }
+
 
 impl CPU{
         // opcodes
@@ -152,5 +151,36 @@ impl CPU{
 impl Default for CPU {
     fn default() -> CPU {
         CPU { PC: 0, SP: 0, A: 0, X: 0, Y: 0, C: 0, Z: 0, I: 0, D: 0, B:0, V: 0, N: 0 }
+    }
+}
+
+#[allow(unused_imports,non_snake_case)]
+mod test {
+    use super::{MEM, CPU};
+
+    #[test]
+    fn LDA_IM_load_value_in_register() {
+        let mut mem: MEM = MEM::default();
+        let mut cpu: CPU = CPU::default();
+        cpu.reset(&mut mem);
+        let pcs = cpu.PC;
+        mem.data[0xFFFC] = CPU::INS_LDA_IM;
+        mem.data[0xFFFD] = 0x12;
+        cpu.execute(2, &mut mem);
+        assert_eq!(cpu.A, 0x12);
+        assert_eq!(cpu.PC, pcs + 2)
+    }
+    #[test]
+    fn LDA_ZP_load_value_in_register(){
+        let mut mem: MEM = MEM::default();
+        let mut cpu: CPU = CPU::default();
+        cpu.reset(&mut mem);
+        let pcs = cpu.PC;
+        mem.data[0xFFFC] = CPU::INS_LDA_ZP;
+        mem.data[0xFFFD] = 0x42;
+        mem.data[0x0042] = 0x12;
+        cpu.execute(3, &mut mem);
+        assert_eq!(cpu.A, 0x12);
+        assert_eq!(cpu.PC, pcs + 2);
     }
 }
