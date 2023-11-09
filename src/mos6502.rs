@@ -56,6 +56,7 @@ impl CPU{
     pub const INS_LDA_ZP_X: Byte = 0xB5;  // LDA, zero page, X
     pub const INS_LDA_ABS: Byte = 0xAD;   // LDA, absolute
     pub const INS_LDA_ABS_X: Byte = 0xBD; // LDA, absolute, X
+    pub const INS_LDA_ABS_Y: Byte = 0xB9; // LDA, absolute, Y
     pub const INS_JSR: Byte = 0x20;       // JSR - Jump to  Subroutine
 
     pub fn reset(&mut self,memory: &mut MEM) {
@@ -163,6 +164,15 @@ impl CPU{
                     }
                     self.LDA_set_status();
                 }
+                CPU::INS_LDA_ABS_Y => {
+                    let ab_address: Word = self.fetch_word(&mut cycles, memory);
+                    let ab_address_y: Word = ab_address + self.Y as Word;
+                    cycles -= 1;
+                    if Self::is_page_boundary_crossed(ab_address, ab_address_y) == true{
+                        cycles -= 1;
+                    }
+                    self.LDA_set_status();
+                }
                 CPU::INS_JSR => {
                     let sr_address: Word = self.fetch_word(&mut cycles, memory);
                     memory.write_word(&mut cycles, self.PC - 1, self.SP as u32);
@@ -254,5 +264,5 @@ mod test {
         assert_eq!(cpu.PC, pc_expected);
         assert_LDA_flags(cpu, cpu_copy);
     }
-    //TODO: add LDA_ABS_X test
+    //TODO: add LDA_ABS_X and LDA_ABS_Y tests
 }
