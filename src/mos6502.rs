@@ -181,7 +181,7 @@ impl Default for CPU {
     }
 }
 
-
+//TODO: move tests to separate folder
 #[allow(unused_imports,non_snake_case, dead_code)]
 mod test {
     use super::{MEM, CPU};
@@ -254,4 +254,5 @@ mod test {
         assert_eq!(cpu.PC, pc_expected);
         assert_LDA_flags(cpu, cpu_copy);
     }
+    //TODO: add LDA_ABS_X test
 }
