@@ -165,29 +165,49 @@ impl Default for CPU {
 
 
 
-#[allow(unused_imports,non_snake_case)]
+#[allow(unused_imports,non_snake_case, dead_code)]
 mod test {
     use super::{MEM, CPU};
+
+    fn assert_LDA_flags (cpu: CPU, cpu_copy: CPU){
+        assert_eq!(cpu.C, cpu_copy.C);
+        if  cpu.A == 0{
+            assert_eq!(cpu.Z, 1)
+        } else {
+            assert_eq!(cpu.Z, cpu_copy.Z)
+        }
+        assert_eq!(cpu.I, cpu_copy.I);
+        assert_eq!(cpu.D, cpu_copy.B);
+        assert_eq!(cpu.V, cpu_copy.V);
+        if cpu.A & 0b10000000 > 0{
+            assert_eq!(cpu.N, 1);
+        } else {
+            assert_eq!(cpu.N, cpu_copy.N); 
+        }
+    }
 
     #[test]
     fn LDA_IM_load_value_in_register() {
         let mut mem: MEM = MEM::default();
         let mut cpu: CPU = CPU::default();
         cpu.reset(&mut mem);
+        let cpu_copy: CPU = cpu.clone();
         let pc_expected = cpu.PC + 2;
 
         mem.data[0xFFFC] = CPU::INS_LDA_IM;
         mem.data[0xFFFD] = 0x12;
-        
+
         cpu.execute(2, &mut mem);
         assert_eq!(cpu.A, 0x12);
-        assert_eq!(cpu.PC, pc_expected)
+        assert_eq!(cpu.PC, pc_expected);
+        assert_LDA_flags(cpu, cpu_copy);
     }
     #[test]
     fn LDA_ZP_load_value_in_register(){
         let mut mem: MEM = MEM::default();
         let mut cpu: CPU = CPU::default();
         cpu.reset(&mut mem);
+        let cpu_copy: CPU = cpu.clone();
         let pc_expected = cpu.PC + 2;
 
         mem.data[0xFFFC] = CPU::INS_LDA_ZP;
@@ -197,12 +217,14 @@ mod test {
         cpu.execute(3, &mut mem);
         assert_eq!(cpu.A, 0x12);
         assert_eq!(cpu.PC, pc_expected);
+        assert_LDA_flags(cpu, cpu_copy);
     }
     #[test]
     fn LDA_AB_load_value_in_register(){
         let mut mem: MEM = MEM::default();
         let mut cpu: CPU = CPU::default();
         cpu.reset(&mut mem);
+        let cpu_copy: CPU = cpu.clone();
         let pc_expected = cpu.PC + 3;
 
         mem.data[0xFFFC] = CPU::INS_LDA_AB;
@@ -212,6 +234,7 @@ mod test {
 
         cpu.execute(4, &mut mem);
         assert_eq!(cpu.A, 0x12);
-        assert_eq!(cpu.PC, pc_expected)
+        assert_eq!(cpu.PC, pc_expected);
+        assert_LDA_flags(cpu, cpu_copy);
     }
 }
