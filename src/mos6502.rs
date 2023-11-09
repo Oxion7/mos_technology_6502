@@ -54,7 +54,8 @@ impl CPU{
     pub const INS_LDA_IM: Byte = 0xA9;    // LDA - Load Accumulator, imidiate mode
     pub const INS_LDA_ZP: Byte = 0xA5;    // LDA, zero page mode
     pub const INS_LDA_ZP_X: Byte = 0xB5;  // LDA, zero page, X
-    pub const INS_LDA_AB: Byte = 0xAD  ;   // LDA, absolute
+    pub const INS_LDA_ABS: Byte = 0xAD;   // LDA, absolute
+    pub const INS_LDA_ABS_X: Byte = 0xBD; // LDA, absolute, X
     pub const INS_JSR: Byte = 0x20;       // JSR - Jump to  Subroutine
 
     pub fn reset(&mut self,memory: &mut MEM) {
@@ -115,6 +116,14 @@ impl CPU{
         }
     }
 
+    fn is_page_boundary_crossed(ab_address:Word, ab_address_x:Word) -> bool{
+        if (ab_address + ab_address_x) > 0 {
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn execute(&mut self, mut cycles: u32, memory: &mut MEM){
         while cycles > 0 {
             let instruction: Byte = self.fetch_byte(&mut cycles, &memory);
@@ -139,10 +148,19 @@ impl CPU{
                     //TODO: handle the address overflow
                     self.LDA_set_status();
                 }
-                CPU::INS_LDA_AB => {
+                CPU::INS_LDA_ABS => {
                     let ab_address: Word = self.fetch_word(&mut cycles, memory);
                     self.A = self.read_byte(&mut cycles, memory, ab_address);
 
+                    self.LDA_set_status();
+                }
+                CPU::INS_LDA_ABS_X => {
+                    let ab_address: Word = self.fetch_word(&mut cycles, memory);
+                    let ab_address_x: Word = ab_address + self.X as Word;
+                    cycles -= 1;
+                    if Self::is_page_boundary_crossed(ab_address, ab_address_x) == true{
+                        cycles -= 1;
+                    }
                     self.LDA_set_status();
                 }
                 CPU::INS_JSR => {
@@ -162,7 +180,6 @@ impl Default for CPU {
         CPU { PC: 0, SP: 0, A: 0, X: 0, Y: 0, C: 0, Z: 0, I: 0, D: 0, B:0, V: 0, N: 0 }
     }
 }
-
 
 
 #[allow(unused_imports,non_snake_case, dead_code)]
@@ -227,7 +244,7 @@ mod test {
         let cpu_copy: CPU = cpu.clone();
         let pc_expected = cpu.PC + 3;
 
-        mem.data[0xFFFC] = CPU::INS_LDA_AB;
+        mem.data[0xFFFC] = CPU::INS_LDA_ABS;
         mem.data[0xFFFD] = 0x80;
         mem.data[0xFFFE] = 0x44;
         mem.data[0x4480] = 0x12;
