@@ -51,17 +51,20 @@ pub struct CPU {
 
 impl CPU{
         // opcodes
-    pub const INS_LDA_IM: Byte = 0xA9;    // LDA - Load Accumulator, imidiate mode
-    pub const INS_LDA_ZP: Byte = 0xA5;    // LDA, zero page mode
-    pub const INS_LDA_ZP_X: Byte = 0xB5;  // LDA, zero page, X
-    pub const INS_LDA_ABS: Byte = 0xAD;   // LDA, absolute
-    pub const INS_LDA_ABS_X: Byte = 0xBD; // LDA, absolute, X
-    pub const INS_LDA_ABS_Y: Byte = 0xB9; // LDA, absolute, Y
+    pub const INS_LDA_IM: Byte      = 0xA9;     // LDA- Load Accumulator, immediate mode
+    pub const INS_LDA_ZP: Byte      = 0xA5;     // LDA, Zero page mode
+    pub const INS_LDA_ZP_X: Byte    = 0xB5;     // LDA, Zero page, X
+    pub const INS_LDA_ABS: Byte     = 0xAD;     // LDA, Absolute
+    pub const INS_LDA_ABS_X: Byte   = 0xBD;     // LDA, Absolute, X
+    pub const INS_LDA_ABS_Y: Byte   = 0xB9;     // LDA, Absolute, Y
     //TODO: pub const INS_LDA_X_IND: Byte = 0xA1;
     //TODO: pub const INS_LDA_IND_Y: Byte = 0xB1;
-    pub const INS_LDX_IM: Byte = 0xA2;
-    pub const INS_LDX_ZP: Byte = 0xA6;
-    pub const INS_JSR: Byte = 0x20;       // JSR - Jump to  Subroutine
+    pub const INS_LDX_IM: Byte      = 0xA2;     // LDX- Load Index X, immediate
+    pub const INS_LDX_ZP: Byte      = 0xA6;     // LDX, Zero page
+    pub const INS_LDX_ZP_Y:Byte     = 0xB6;     // LDX, Zero page, Y
+    pub const INS_LDX_ABS:Byte      = 0xAE;     // LDX, Absolute
+    pub const INS_LDX_ABS_Y:Byte    = 0xBE;     // LDX, Absolute, Y
+    pub const INS_JSR: Byte         = 0x20;     // JSR - Jump to  Subroutine
 
     pub fn reset(&mut self,memory: &mut MEM) {
         self.PC = 0xFFFC;
@@ -183,10 +186,34 @@ impl CPU{
 
                     self.LDA_set_status();
                 }
-                CPU::INS_LDX_ZP =>{
+                CPU::INS_LDX_ZP => {
                     let zero_page_address: Byte = self.fetch_byte(&mut cycles, memory);
                     self.X = self.read_byte(&mut cycles, memory, (zero_page_address) as u16);
                     
+                    self.LDA_set_status();
+                }
+                CPU::INS_LDX_ZP_Y => {
+                    let mut zero_page_adress: Byte = self.fetch_byte(&mut cycles, memory);
+                    zero_page_adress += self.Y;
+                    cycles -= 1;
+                    self.X = self.read_byte(&mut cycles, memory, (zero_page_adress) as u16);
+                    //TODO: handle the address overflow
+                    self.LDA_set_status();
+                }
+                CPU::INS_LDX_ABS => {
+                    let ab_address: Word = self.fetch_word(&mut cycles, memory);
+                    self.X = self.read_byte(&mut cycles, memory, ab_address);
+
+                    self.LDA_set_status();
+                }
+                //TODO: probably wrong?
+                CPU::INS_LDX_ABS_Y => {
+                    let ab_address: Word = self.fetch_word(&mut cycles, memory);
+                    let ab_address_y: Word = ab_address + self.Y as Word;
+                    cycles -= 1;
+                    if Self::is_page_boundary_crossed(ab_address, ab_address_y) == true{
+                        cycles -= 1;
+                    }
                     self.LDA_set_status();
                 }
                 CPU::INS_JSR => {
