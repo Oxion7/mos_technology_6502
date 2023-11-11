@@ -106,7 +106,7 @@ impl CPU{
 
 
     #[allow(non_snake_case)]
-    fn LDA_set_status(&mut self) {
+    fn LDAXY_set_status(&mut self) {
         // Z is set if A = 0
         if self.A == 0 {
             self.Z = 1;
@@ -133,13 +133,13 @@ impl CPU{
                     let value: Byte = self.fetch_byte(&mut cycles, memory);
                     self.A = value;
 
-                    self.LDA_set_status();
+                    self.LDAXY_set_status();
                 }
                 CPU::INS_LDA_ZP => {
                     let zero_page_address: Byte = self.fetch_byte(&mut cycles, memory);
                     self.A = self.read_byte(&mut cycles, memory, (zero_page_address) as u16);
                     
-                    self.LDA_set_status();
+                    self.LDAXY_set_status();
                 }
                 CPU::INS_LDA_ZP_X => {
                     let mut zero_page_adress: Byte = self.fetch_byte(&mut cycles, memory);
@@ -147,13 +147,13 @@ impl CPU{
                     cycles -= 1;
                     self.A = self.read_byte(&mut cycles, memory, (zero_page_adress) as u16);
                     //TODO: handle the address overflow
-                    self.LDA_set_status();
+                    self.LDAXY_set_status();
                 }
                 CPU::INS_LDA_ABS => {
                     let ab_address: Word = self.fetch_word(&mut cycles, memory);
                     self.A = self.read_byte(&mut cycles, memory, ab_address);
 
-                    self.LDA_set_status();
+                    self.LDAXY_set_status();
                 }
                 CPU::INS_LDA_ABS_X => {
                     let ab_address: Word = self.fetch_word(&mut cycles, memory);
@@ -162,7 +162,7 @@ impl CPU{
                     if Self::is_page_boundary_crossed(ab_address, ab_address_x) == true{
                         cycles -= 1;
                     }
-                    self.LDA_set_status();
+                    self.LDAXY_set_status();
                 }
                 CPU::INS_LDA_ABS_Y => {
                     let ab_address: Word = self.fetch_word(&mut cycles, memory);
@@ -171,7 +171,7 @@ impl CPU{
                     if Self::is_page_boundary_crossed(ab_address, ab_address_y) == true{
                         cycles -= 1;
                     }
-                    self.LDA_set_status();
+                    self.LDAXY_set_status();
                 }
                 CPU::INS_JSR => {
                     let sr_address: Word = self.fetch_word(&mut cycles, memory);
