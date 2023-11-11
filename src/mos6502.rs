@@ -57,6 +57,10 @@ impl CPU{
     pub const INS_LDA_ABS: Byte = 0xAD;   // LDA, absolute
     pub const INS_LDA_ABS_X: Byte = 0xBD; // LDA, absolute, X
     pub const INS_LDA_ABS_Y: Byte = 0xB9; // LDA, absolute, Y
+    //TODO: pub const INS_LDA_X_IND: Byte = 0xA1;
+    //TODO: pub const INS_LDA_IND_Y: Byte = 0xB1;
+    pub const INS_LDX_IM: Byte = 0xA2;
+    pub const INS_LDX_ZP: Byte = 0xA6;
     pub const INS_JSR: Byte = 0x20;       // JSR - Jump to  Subroutine
 
     pub fn reset(&mut self,memory: &mut MEM) {
@@ -173,6 +177,18 @@ impl CPU{
                     }
                     self.LDA_set_status();
                 }
+                CPU::INS_LDX_IM => {
+                    let value: Byte = self.fetch_byte(&mut cycles, memory);
+                    self.X = value;
+
+                    self.LDA_set_status();
+                }
+                CPU::INS_LDX_ZP =>{
+                    let zero_page_address: Byte = self.fetch_byte(&mut cycles, memory);
+                    self.X = self.read_byte(&mut cycles, memory, (zero_page_address) as u16);
+                    
+                    self.LDA_set_status();
+                }
                 CPU::INS_JSR => {
                     let sr_address: Word = self.fetch_word(&mut cycles, memory);
                     memory.write_word(&mut cycles, self.PC - 1, self.SP as u32);
@@ -212,6 +228,8 @@ mod test {
             assert_eq!(cpu.N, cpu_copy.N); 
         }
     }
+
+    //fn asser_load_value_in_register()
 
     #[test]
     fn LDA_IM_load_value_in_register() {
@@ -265,4 +283,37 @@ mod test {
         assert_LDA_flags(cpu, cpu_copy);
     }
     //TODO: add LDA_ABS_X and LDA_ABS_Y tests
+    #[test]
+    fn LDX_IM_load_value_in_register(){
+        let mut mem: MEM = MEM::default();
+        let mut cpu: CPU = CPU::default();
+        cpu.reset(&mut mem);
+        let cpu_copy: CPU = cpu.clone();
+        let pc_expected = cpu.PC + 2;
+
+        mem.data[0xFFFC] = CPU::INS_LDX_IM;
+        mem.data[0xFFFD] = 0x12;
+
+        cpu.execute(2, &mut mem);
+        assert_eq!(cpu.X, 0x12);
+        assert_eq!(cpu.PC, pc_expected);
+        assert_LDA_flags(cpu, cpu_copy);
+    }
+    #[test]
+    fn LDX_ZP_load_value_in_register(){
+        let mut mem: MEM = MEM::default();
+        let mut cpu: CPU = CPU::default();
+        cpu.reset(&mut mem);
+        let cpu_copy: CPU = cpu.clone();
+        let pc_expected = cpu.PC + 2;
+
+        mem.data[0xFFFC] = CPU::INS_LDX_ZP;
+        mem.data[0xFFFD] = 0x42;
+        mem.data[0x0042] = 0x12;
+
+        cpu.execute(3, &mut mem);
+        assert_eq!(cpu.X, 0x12);
+        assert_eq!(cpu.PC, pc_expected);
+        assert_LDA_flags(cpu, cpu_copy);
+    }
 }
